@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
                     onSetBaseUrl = vm::setBaseUrl,
                     onEditBaseUrl = vm::editBaseUrl,
                     onCancelEditBaseUrl = vm::cancelEditBaseUrl,
+                    onDraftChange = vm::updateDraft,
                     onSend = vm::send,
                 )
             }

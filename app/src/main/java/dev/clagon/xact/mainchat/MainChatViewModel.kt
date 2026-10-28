@@ -29,6 +29,9 @@ data class MainChatUiState(
     /** 実行中の Turn の応答。null なら Turn は動いていない。空文字は応答待ち。 */
     val streaming: String? = null,
     val error: String? = null,
+    /** 入力中の文章。送信が受理されるまで消さない。 */
+    val draft: String = "",
+    val sending: Boolean = false,
 )
 
 /**
@@ -91,12 +94,20 @@ class MainChatViewModel(
         viewModelScope.launch { settings.setBaseUrl(url) }
     }
 
-    fun send(text: String) {
+    fun updateDraft(text: String) {
+        _state.update { it.copy(draft = text) }
+    }
+
+    fun send() {
         val client = client ?: return
         val sessionId = sessionId ?: return
+        val text = _state.value.draft.trim()
+        if (text.isEmpty() || _state.value.sending) return
+        _state.update { it.copy(sending = true) }
         viewModelScope.launch {
             runCatching { client.send(sessionId, text) }
-                .onFailure { e -> _state.update { it.copy(error = e.message) } }
+                .onSuccess { _state.update { it.copy(draft = "", sending = false) } }
+                .onFailure { e -> _state.update { it.copy(sending = false, error = e.message) } }
         }
     }
 

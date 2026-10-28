@@ -40,7 +40,8 @@ fun MainChatScreen(
     onSetBaseUrl: (String) -> Unit,
     onEditBaseUrl: () -> Unit,
     onCancelEditBaseUrl: () -> Unit,
-    onSend: (String) -> Unit,
+    onDraftChange: (String) -> Unit,
+    onSend: () -> Unit,
 ) {
     Scaffold { padding ->
         Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
@@ -55,7 +56,12 @@ fun MainChatScreen(
                 Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp))
             }
             Messages(state, Modifier.weight(1f))
-            Composer(enabled = state.connected && state.streaming == null, onSend = onSend)
+            Composer(
+                draft = state.draft,
+                enabled = state.connected && state.streaming == null && !state.sending,
+                onDraftChange = onDraftChange,
+                onSend = onSend,
+            )
         }
     }
 }
@@ -127,18 +133,16 @@ private fun Bubble(message: ChatMessage) {
 
 @Composable
 private fun Composer(
+    draft: String,
     enabled: Boolean,
-    onSend: (String) -> Unit,
+    onDraftChange: (String) -> Unit,
+    onSend: () -> Unit,
 ) {
-    var text by rememberSaveable { mutableStateOf("") }
     Row(Modifier.fillMaxWidth().padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-        OutlinedTextField(value = text, onValueChange = { text = it }, modifier = Modifier.weight(1f))
+        OutlinedTextField(value = draft, onValueChange = onDraftChange, enabled = enabled, modifier = Modifier.weight(1f))
         Button(
-            onClick = {
-                onSend(text.trim())
-                text = ""
-            },
-            enabled = enabled && text.isNotBlank(),
+            onClick = onSend,
+            enabled = enabled && draft.isNotBlank(),
             modifier = Modifier.padding(start = 8.dp),
         ) { Text("送信") }
     }
@@ -156,6 +160,7 @@ private fun MainChatScreenPreview() {
         onSetBaseUrl = {},
         onEditBaseUrl = {},
         onCancelEditBaseUrl = {},
+        onDraftChange = {},
         onSend = {},
     )
 }
