@@ -1,8 +1,10 @@
 package dev.clagon.xact.xangi
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.buffer
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.Json
@@ -41,6 +43,9 @@ data class ChatMessage(
 
 /** 1 つの Turn の進行。xangi の events SSE の操作イベントに対応する。 */
 sealed interface TurnEvent {
+    /** 購読が確立した。これより前に起きたイベントは届かないので、受け取ったら履歴を読み直す。 */
+    data object StreamOpened : TurnEvent
+
     data class Started(
         val userText: String,
     ) : TurnEvent
@@ -136,7 +141,10 @@ class XangiClient(
         call(request("api/device/inbox").post(body.toRequestBody(JSON_TYPE)))
     }
 
-    /** 指定 Session の Turn の進行を流す。接続が切れると Flow は例外で終わる。 */
+    /**
+     * 指定 Session の Turn の進行を流す。最初に [TurnEvent.StreamOpened] が届く。
+     * 接続が切れるか、イベントを渡しきれないと Flow は例外で終わる。
+     */
     fun events(sessionId: String): Flow<TurnEvent> =
         callbackFlow {
             val url =
@@ -147,13 +155,25 @@ class XangiClient(
                     .build()
             val listener =
                 object : EventSourceListener() {
+                    override fun onOpen(
+                        eventSource: EventSource,
+                        response: Response,
+                    ) {
+                        deliver(TurnEvent.StreamOpened)
+                    }
+
                     override fun onEvent(
                         eventSource: EventSource,
                         id: String?,
                         type: String?,
                         data: String,
                     ) {
-                        if (type == null) parseTurnEvent(data)?.let { trySend(it) }
+                        if (type == null) parseTurnEvent(data)?.let(::deliver)
+                    }
+
+                    // 完了イベントを黙って捨てると画面が応答待ちのまま固まるため、渡せなければ接続ごと終わらせる
+                    fun deliver(event: TurnEvent) {
+                        if (trySend(event).isFailure) close(IOException("events stream overflowed"))
                     }
 
                     override fun onClosed(eventSource: EventSource) {
@@ -170,7 +190,7 @@ class XangiClient(
                 }
             val source = EventSources.createFactory(sse).newEventSource(Request.Builder().url(url).build(), listener)
             awaitClose { source.cancel() }
-        }
+        }.buffer(Channel.UNLIMITED)
 
     private fun request(path: String) = Request.Builder().url(base.newBuilder().addPathSegments(path).build())
 

@@ -4,7 +4,9 @@ import dev.clagon.xact.xangi.ChatMessage
 import dev.clagon.xact.xangi.Role
 import dev.clagon.xact.xangi.TurnEvent
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MainChatReducerTest {
@@ -46,5 +48,15 @@ class MainChatReducerTest {
         val state = start.copy(error = "boom").reduce(TurnEvent.Started("again"))
 
         assertNull(state.error)
+    }
+
+    @Test
+    fun `購読の開始と Turn の終了でだけ履歴を読み直す`() {
+        assertTrue(TurnEvent.StreamOpened.needsHistory)
+        assertTrue(TurnEvent.Completed("x").needsHistory)
+        assertTrue(TurnEvent.Aborted.needsHistory)
+        assertTrue(TurnEvent.Failed("x").needsHistory)
+        assertFalse(TurnEvent.Started("x").needsHistory)
+        assertFalse(TurnEvent.Delta("x").needsHistory)
     }
 }

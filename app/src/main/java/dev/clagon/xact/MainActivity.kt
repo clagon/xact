@@ -20,7 +20,13 @@ class MainActivity : ComponentActivity() {
             MaterialTheme {
                 val vm = viewModel { MainChatViewModel(container.settings, container.http) }
                 val state by vm.state.collectAsStateWithLifecycle()
-                MainChatScreen(state, onSetBaseUrl = vm::setBaseUrl, onSend = vm::send)
+                MainChatScreen(
+                    state,
+                    onSetBaseUrl = vm::setBaseUrl,
+                    onEditBaseUrl = vm::editBaseUrl,
+                    onCancelEditBaseUrl = vm::cancelEditBaseUrl,
+                    onSend = vm::send,
+                )
             }
         }
     }

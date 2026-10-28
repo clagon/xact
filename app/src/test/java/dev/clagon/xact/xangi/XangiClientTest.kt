@@ -128,10 +128,10 @@ class XangiClientTest {
                     ).build(),
             )
 
-            val events = client.events("s1").take(3).toList()
+            val events = client.events("s1").take(4).toList()
 
             assertEquals(
-                listOf(TurnEvent.Started("hi"), TurnEvent.Delta("he"), TurnEvent.Completed("hello")),
+                listOf(TurnEvent.StreamOpened, TurnEvent.Started("hi"), TurnEvent.Delta("he"), TurnEvent.Completed("hello")),
                 events,
             )
             assertEquals("web:s1", server.takeRequest().url.queryParameter("thread_id"))

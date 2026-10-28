@@ -17,6 +17,7 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -37,13 +38,18 @@ import dev.clagon.xact.xangi.normalizeBaseUrl
 fun MainChatScreen(
     state: MainChatUiState,
     onSetBaseUrl: (String) -> Unit,
+    onEditBaseUrl: () -> Unit,
+    onCancelEditBaseUrl: () -> Unit,
     onSend: (String) -> Unit,
 ) {
     Scaffold { padding ->
         Column(Modifier.fillMaxSize().padding(padding).imePadding()) {
             if (state.needsSetup) {
-                SetupForm(onSetBaseUrl)
+                SetupForm(state.baseUrl, onSetBaseUrl, onCancelEditBaseUrl)
                 return@Column
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+                TextButton(onClick = onEditBaseUrl) { Text("接続先") }
             }
             state.error?.let {
                 Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(12.dp))
@@ -55,8 +61,12 @@ fun MainChatScreen(
 }
 
 @Composable
-private fun SetupForm(onSetBaseUrl: (String) -> Unit) {
-    var input by rememberSaveable { mutableStateOf("") }
+private fun SetupForm(
+    current: String?,
+    onSetBaseUrl: (String) -> Unit,
+    onCancel: () -> Unit,
+) {
+    var input by rememberSaveable { mutableStateOf(current.orEmpty()) }
     val url = normalizeBaseUrl(input)
     Column(Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Text("xangi の接続先", style = MaterialTheme.typography.titleMedium)
@@ -68,7 +78,10 @@ private fun SetupForm(onSetBaseUrl: (String) -> Unit) {
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
             modifier = Modifier.fillMaxWidth(),
         )
-        Button(onClick = { url?.let(onSetBaseUrl) }, enabled = url != null) { Text("接続") }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = { url?.let(onSetBaseUrl) }, enabled = url != null) { Text("接続") }
+            if (current != null) TextButton(onClick = onCancel) { Text("キャンセル") }
+        }
     }
 }
 
@@ -141,6 +154,8 @@ private fun MainChatScreenPreview() {
             streaming = "考え中",
         ),
         onSetBaseUrl = {},
+        onEditBaseUrl = {},
+        onCancelEditBaseUrl = {},
         onSend = {},
     )
 }
