@@ -21,5 +21,6 @@ class BaseUrlTest {
         assertNull(normalizeBaseUrl("ftp://host"))
         assertNull(normalizeBaseUrl("http://host:18888/api"))
         assertNull(normalizeBaseUrl("http://"))
+        assertNull(normalizeBaseUrl("127.0.0.1:99999"))
     }
 }

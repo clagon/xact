@@ -7,6 +7,7 @@ import dev.clagon.xact.xangi.ChatMessage
 import dev.clagon.xact.xangi.Role
 import dev.clagon.xact.xangi.TurnEvent
 import dev.clagon.xact.xangi.XangiClient
+import dev.clagon.xact.xangi.normalizeBaseUrl
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -71,7 +72,9 @@ class MainChatViewModel(
     init {
         viewModelScope.launch {
             settings.baseUrl.collectLatest { url ->
-                if (url == null) {
+                // 保存済みの値も検証する。不正な値で XangiClient を作るとクラッシュするため、設定画面に戻す
+                if (url == null || normalizeBaseUrl(url) == null) {
+                    client = null
                     _state.value = MainChatUiState(needsSetup = true)
                 } else {
                     _state.value = MainChatUiState(baseUrl = url)
@@ -105,7 +108,10 @@ class MainChatViewModel(
         if (text.isEmpty() || _state.value.sending) return
         _state.update { it.copy(sending = true) }
         viewModelScope.launch {
-            runCatching { client.send(sessionId, text) }
+            val result = runCatching { client.send(sessionId, text) }
+            // 送信中に接続先が変わったら、古い接続の結果で新しい接続の状態を書き換えない
+            if (this@MainChatViewModel.client !== client) return@launch
+            result
                 .onSuccess { _state.update { it.copy(draft = "", sending = false) } }
                 .onFailure { e -> _state.update { it.copy(sending = false, error = e.message) } }
         }
