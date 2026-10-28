@@ -16,7 +16,7 @@ xact は xangi をバックエンドとする、Meta Muse 風の個人用 Androi
 
 ## 依存ライブラリ
 
-OkHttp + okhttp-sse、kotlinx.serialization、Coil、Compose 用の Markdown 描画ライブラリ 1 つ、DataStore。これ以外を追加するときは ADR を書く（ADR 0004）。
+Android 標準構成（Compose、Activity、Lifecycle）、OkHttp + okhttp-sse、kotlinx.serialization、Coil、Compose 用の Markdown 描画ライブラリ 1 つ、DataStore。テスト用は JUnit、MockWebServer、kotlinx-coroutines-test。これ以外を追加するときは ADR を書く（ADR 0004）。
 
 ## テスト
 
